@@ -21,8 +21,12 @@ package struct UnifiedHitTestingFeature: Feature {
 
 // MARK: GestureContainerFeature [TODO]
 
-struct GestureContainerFeature {
-    static var isEnabled: Bool {
+package struct GestureContainerFeature: Feature {
+    package init() {
+        _openSwiftUIEmptyStub()
+    }
+
+    package static var isEnabled: Bool {
         false
     }
 }

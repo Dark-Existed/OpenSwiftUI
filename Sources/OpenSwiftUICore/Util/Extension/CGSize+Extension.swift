@@ -35,6 +35,29 @@ extension CGSize {
     package func increasedBy(dWidth: CGFloat = 0, dHeight: CGFloat = 0) -> CGSize {
         CGSize(width: width + dWidth, height: height + dHeight)
     }
+
+    @inlinable
+    package mutating func normalize() {
+        let squaredLength = width * width + height * height
+        guard squaredLength != 0 else {
+            return
+        }
+        let scale = 1.0 / squaredLength.squareRoot()
+        width *= scale
+        height *= scale
+    }
+
+    @inlinable
+    package func normalized() -> CGSize {
+        var result = self
+        result.normalize()
+        return result
+    }
+
+    @inlinable
+    package var magnitude: Double {
+        (width * width + height * height).squareRoot()
+    }
     
     @inlinable
     package var isFinite: Bool {
