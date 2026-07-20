@@ -518,6 +518,16 @@ public struct Path: Equatable, LosslessStringConvertible, @unchecked Sendable {
     }
 
     package func contains(points: [CGPoint], eoFill: Bool = false, origin: CGPoint = .zero) -> BitVector64 {
+        points.withUnsafeBufferPointer { buffer in
+            contains(points: buffer, eoFill: eoFill, origin: origin)
+        }
+    }
+    
+    package func contains(points: UnsafeBufferPointer<CGPoint>, eoFill: Bool = false, origin: CGPoint = .zero) -> BitVector64 {
+        _openSwiftUIUnimplementedFailure()
+    }
+    
+    public func mapPoints(_ transform: (inout [CGPoint]) -> Void) -> Path {
         _openSwiftUIUnimplementedFailure()
     }
 

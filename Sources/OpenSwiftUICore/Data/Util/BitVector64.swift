@@ -36,11 +36,15 @@ public struct BitVector64: OptionSet {
 @available(*, unavailable)
 extension BitVector64: Sendable {}
 
-extension Array {
+extension Collection {
     package func mapBool(_ predicate: (Element) -> Bool) -> BitVector64 {
         var result = BitVector64()
         for (index, element) in enumerated() {
-            result[index] = predicate(element)
+            let value = predicate(element)
+            guard index < 64 else {
+                continue
+            }
+            result[index] = value
         }
         return result
     }

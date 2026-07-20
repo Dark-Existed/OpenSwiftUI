@@ -46,7 +46,7 @@ extension PreferencesOutputs {
 
 @_spi(ForOpenSwiftUIOnly)
 @available(OpenSwiftUI_v6_0, *)
-open class ViewResponder: ResponderNode, CustomStringConvertible/*, CustomRecursiveStringConvertible*/ {
+open class ViewResponder: ResponderNode, CustomStringConvertible, CustomRecursiveStringConvertible {
     final private(set) package weak var host: ViewGraphDelegate? = nil
 
     final package weak var parent: ViewResponder? = nil {
@@ -113,6 +113,8 @@ open class ViewResponder: ResponderNode, CustomStringConvertible/*, CustomRecurs
 
         package static let crossingServerIDBoundary: ContainsPointsOptions = .init(rawValue: 1 << 4)
 
+        package static let uncached: ContainsPointsOptions = .init(rawValue: 1 << 5)
+
         public static var platformDefault: ViewResponder.ContainsPointsOptions { [] }
     }
 
@@ -142,8 +144,7 @@ open class ViewResponder: ResponderNode, CustomStringConvertible/*, CustomRecurs
     open var children: [ViewResponder] { [] }
 
     open var descriptionName: String {
-        // recursiveDescriptionName(Self.self)
-        _openSwiftUIUnimplementedFailure()
+        recursiveDescriptionName(Self.self)
     }
 
     public var description: String {
@@ -152,8 +153,12 @@ open class ViewResponder: ResponderNode, CustomStringConvertible/*, CustomRecurs
 
     @inline(never)
     final package func printTree(depth: Int = 0) {
-        // Log.eventDebug
-        _openSwiftUIUnimplementedFailure()
+        var string = "\(indentString(depth))+ \(descriptionName) \(address(of: self)) "
+        extendPrintTree(string: &string)
+        Log.eventDebug(string)
+        for child in children {
+            child.printTree(depth: depth + 1)
+        }
     }
 
     open func extendPrintTree(string: inout String) {}

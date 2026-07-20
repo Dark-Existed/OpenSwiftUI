@@ -40,12 +40,48 @@ extension ShapeStyledLeafView {
         styles.isClear(name: .foreground) && styles.isClear(name: .background)
     }
 
-    package func contains(points: [PlatformPoint], size: CGSize) -> BitVector64 {
-        _openSwiftUIUnimplementedFailure()
+    package func contains(points: UnsafeBufferPointer<PlatformPoint>, size: CGSize) -> BitVector64 {
+        let framedShape: FramedShape
+        if Self.hasBackground {
+            let background = backgroundShape(in: size)
+            switch background.shape {
+            case .empty:
+                framedShape = shape(in: size)
+            default:
+                framedShape = background
+            }
+        } else {
+            framedShape = shape(in: size)
+        }
+        let frame = framedShape.frame
+        switch framedShape.shape {
+        case let .path(path, fillStyle):
+            guard points.contains(where: { frame.contains($0) }) else {
+                return []
+            }
+            return path.contains(
+                points: points,
+                eoFill: fillStyle.isEOFilled,
+                origin: frame.origin
+            )
+        default:
+            return points.mapBool { frame.contains($0) }
+        }
     }
 
     package func contentPath(size: CGSize) -> Path {
-        _openSwiftUIUnimplementedFailure()
+        let framedShape = shape(in: size)
+        let frame = framedShape.frame
+        switch framedShape.shape {
+        case let .path(path, _):
+            guard frame.origin != .zero else {
+                return path
+            }
+            let transform = CGAffineTransform(translationX: frame.origin.x, y: frame.origin.y)
+            return path.applying(transform)
+        default:
+            return Path(frame)
+        }
     }
 
     package static func makeLeafView(
@@ -57,7 +93,6 @@ extension ShapeStyledLeafView {
     ) -> _ViewOutputs {
         var outputs = _ViewOutputs()
         if inputs.preferences.requiresDisplayList {
-
             let identity = DisplayList.Identity()
             inputs.pushIdentity(identity)
             let displayList = Attribute(
@@ -80,7 +115,16 @@ extension ShapeStyledLeafView {
             )
             outputs.displayList = displayList
         }
-        // TODO: Responder
+        let responders = ShapeStyledResponderFilter(
+            view: view.value,
+            styles: styles,
+            size: inputs.animatedSize(),
+            position: inputs.animatedPosition(),
+            transform: inputs.transform
+        )
+        if inputs.preferences.requiresViewResponders {
+            outputs.preferences.viewResponders = Attribute(responders)
+        }
         return outputs
     }
 }
@@ -111,16 +155,67 @@ extension ShapeStyledLeafView where ShapeUpdateData == () {
 }
 
 package struct ShapeStyledResponderData<V>: ContentResponder where V: ShapeStyledLeafView {
-    package func contains(points: [PlatformPoint], size: CGSize) -> BitVector64 {
-        _openSwiftUIUnimplementedFailure()
+    var view: V
+    var styles: ShapeStyle.Pack
+    
+    package func contains(points: UnsafeBufferPointer<PlatformPoint>, size: CGSize) -> BitVector64 {
+        guard !view.isClear(styles: styles) else {
+            return []
+        }
+        return view.contains(points: points, size: size)
     }
 
     package func contentPath(size: CGSize) -> Path {
-        _openSwiftUIUnimplementedFailure()
+        guard !view.isClear(styles: styles) else {
+            return Path()
+        }
+        return view.contentPath(size: size)
     }
 }
 
-// TODO: ShapeStyledResponderFilter
+// MARK: - ShapeStyledResponderFilter
+
+private struct ShapeStyledResponderFilter<View: ShapeStyledLeafView>: StatefulRule {
+    @Attribute var view: View
+    @Attribute var styles: ShapeStyle.Pack
+    @Attribute var size: ViewSize
+    @Attribute var position: ViewOrigin
+    @Attribute var transform: ViewTransform
+    let responder: LeafViewResponder<ShapeStyledResponderData<View>>
+
+    typealias Value = [ViewResponder]
+
+    init(
+        view: Attribute<View>,
+        styles: Attribute<ShapeStyle.Pack>,
+        size: Attribute<ViewSize>,
+        position: Attribute<ViewOrigin>,
+        transform: Attribute<ViewTransform>
+    ) {
+        self._view = view
+        self._styles = styles
+        self._size = size
+        self._position = position
+        self._transform = transform
+        self.responder = LeafViewResponder()
+    }
+
+    func updateValue() {
+        let (view, viewChanged) = $view.changedValue()
+        let (styles, styleChanged) = $styles.changedValue()
+        let data = ShapeStyledResponderData(view: view, styles: styles)
+        responder.helper.update(
+            data: (value: data, changed: viewChanged || styleChanged),
+            size: $size.changedValue(),
+            position: $position.changedValue(),
+            transform: $transform.changedValue(),
+            parent: responder
+        )
+        if !hasValue {
+            self.value = [responder]
+        }
+    }
+}
 
 // MARK: - ShapeStyledDisplayList
 

@@ -91,6 +91,24 @@ public struct _GestureInputs {
             return transform.projectedValue
         }
     }
+    
+    package var position: Attribute<ViewOrigin> {
+        let defaultPosition = intern(ViewOrigin.zero, id: .defaultValue)
+        return viewSubgraph.apply {
+            var position = IndirectAttribute(source: defaultPosition)
+            position.source = viewInputs.position
+            return position.projectedValue
+        }
+    }
+    
+    package var size: Attribute<ViewSize> {
+        let defaultSize = intern(ViewSize.zero, id: .defaultValue)
+        return viewSubgraph.apply {
+            var size = IndirectAttribute(source: defaultSize)
+            size.source = viewInputs.size
+            return size.projectedValue
+        }
+    }
 
     package func intern<T>(
         _ value: T,

@@ -766,7 +766,18 @@ extension CGRect: ViewTransformable {
 }
 
 // TODO: Path + ViewTransformable
-//extension Path: ViewTransformable {
-//    package mutating func convert(to space: CoordinateSpace, transform: ViewTransform)
-//    package mutating func convert(from space: CoordinateSpace, transform: ViewTransform)
-//}
+extension Path: ViewTransformable {
+    package mutating func convert(to space: CoordinateSpace, transform: ViewTransform) {
+        // TODO: AUDIT NEEDED
+        self = mapPoints { points in
+            points.convert(to: space, transform: transform)
+        }
+    }
+    
+    package mutating func convert(from space: CoordinateSpace, transform: ViewTransform) {
+        // TODO: AUDIT NEEDED
+        self = mapPoints { points in
+            points.convert(from: space, transform: transform)
+        }
+    }
+}
